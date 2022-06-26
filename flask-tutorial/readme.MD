@@ -1,1 +1,1 @@
-the tutorial on the official flask-site (26.06.22)
+the tutorial from the official flask-site https://flask.palletsprojects.com/en/2.1.x/tutorial/(26.06.22)
