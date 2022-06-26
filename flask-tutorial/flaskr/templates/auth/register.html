@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+<!-- uses 'Register' for both header and title blocks of the page -->
+{% block header %}
+  <h1>{% block title %}Register{% endblock title %}</h1>
+{% endblock header %}
+
+<!-- form to register -->
+{% block content %}
+  <form method="post">
+    <label for="username">Username</label>
+    <input name="username" id="username" required>
+    <label for="password">Password</label>
+    <input name="password" type="password" id="password" required>
+    <input type="submit" value="Register">
+  </form>
+{% endblock content %}
