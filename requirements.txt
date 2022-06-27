@@ -2,7 +2,8 @@ attrs==21.4.0
 click==8.1.3
 coverage==6.4.1
 Flask==2.1.2
--e git+https://github.com/IsHaltEchtSo/playground.git@31a4111989ff764e083efe038ce1f41e253925c3#egg=flaskr&subdirectory=flask-tutorial
+-e git+https://github.com/IsHaltEchtSo/playground.git@8264b36d83c08c9682b011eb617b2a04a87fc1f9#egg=flaskr&subdirectory=flask-tutorial
+gunicorn==20.1.0
 iniconfig==1.1.1
 itsdangerous==2.1.2
 Jinja2==3.1.2
