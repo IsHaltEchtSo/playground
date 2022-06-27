@@ -5,3 +5,15 @@ venv/
 *.xml
 *.iml
 *.pyc
+
+*.sqlite
+
+*.egg-info
+
+*.coverage
+
+*.whl
+
+*/build/*
+
+config.py
