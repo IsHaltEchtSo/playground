@@ -18,7 +18,10 @@ class Student(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String)
-    modules = relationship("Module", secondary=association_table)
+    modules = relationship("Module", back_populates='students', secondary=association_table)
+
+    def __repr__(self) -> str:
+        return f"<Student {self.name}>"
 
 
 class Module(Base):
@@ -26,7 +29,10 @@ class Module(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String)
-    students = relationship('Student', secondary=association_table)
+    students = relationship('Student', back_populates='modules', secondary=association_table)
+
+    def __repr__(self) -> str:
+        return f"<Module {self.name}>"
 
 
 Base.metadata.create_all()
@@ -54,6 +60,6 @@ session.commit()
 result = session.query(Module).all()
 
 for module in result:
-    print(f"In the {module.name} module there are")
+    print(f"{module} has {module.students}")
     for student in module.students:
-        print(f"--{student.name}")
+        print(f"{student} has {student.modules}")
