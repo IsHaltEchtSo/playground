@@ -7,7 +7,8 @@ every session has its own flush-deposit and transactions can only be viewed from
 the query object is a select statement that can be further adjusted (filter, update, delete, group, ...)
 the result of a query is either a list of scalars or a scalar
 textual sql can be used in sql expressions, also with bound parameters
-relationship-construct creates an argument that accesses the object from the foreignkey-construct 
+relationship-construct creates an attribute to access objects from linked tables (via pkey) 
+as long as objects are connected via a relationship-attribute it doesn't matter which object you add/commit via session
 """
 
 # DECLARE MAPPING
@@ -136,27 +137,65 @@ for row in r:
 # BUILDING RELATIONSHIP
 from sqlalchemy.orm import relationship
 
-class SportEquipment(Base):
-    __tablename__ = 'Sports Equipment'
+class Athlete(Base):
+    __tablename__ = 'athlete'
 
     id = Column(Integer, primary_key=True)
-    cus_id = Column(Integer, ForeignKey(column=Customers.id))
     name = Column(String)
-    owner = relationship("Customers", back_populates='equipment')
+    discipline = Column(String)
+    equipment = relationship('Equipment', back_populates='athlete')
 
-Customers.equipment = relationship('SportEquipment', back_populates='owner')
-cus1 = session.query(Customers).get(1)
-equip1 = SportEquipment(cus_id=cus1.id, name='Spikeball Set', owner=cus1)
-print(f'name of the equipment {cus1.equipment[0].name}')
-print(f'name of the owner {equip1.owner.name}')
-session.commit()
+class Equipment(Base):
+    __tablename__ = 'equipment'
 
+    id = Column(Integer, primary_key=True)
+    athlete_id = Column(Integer, ForeignKey('athlete.id'))  # THIS IS THE 'ONE' SIDE
+    name = Column(String)
+    athlete = relationship('Athlete', back_populates='equipment')
+    
 Base.metadata.create_all()
 
 
-# WORKING WITH RELATED OBJECTS
-customer1 = session.query(Customers).get(1)
-customer15 = session.query(Customers).get(15)
 
-print(customer1.equipment)
-print(customer15.equipment)
+# WORKING WITH RELATED OBJECTS
+racket = Equipment(name='Tennis Racket')
+nadal = Athlete(name='Nadal', discipline='Tennis', equipment=[racket])
+
+session.add(nadal)
+session.commit()
+
+messi = Athlete(name='Messi', discipline='Soccer')
+messi.equipment.extend([
+    Equipment(name='Soccer clets'),
+    Equipment(name='Soccer Jersey')
+])
+
+session.add(messi)
+session.commit()
+
+sorum = Athlete(name='Sorum', discipline='Beach Volleyball', equipment=[
+    Equipment(name='Volleyball'), Equipment(name='Jersey')
+])
+
+session.add(sorum)
+session.commit()
+
+klitschko = Athlete(name='Klitschko', discipline='Boxing')
+gloves = Equipment(name='Boxing Gloves', athlete=klitschko)
+
+session.add(gloves)
+session.commit()
+
+milo = Athlete(name='Milo', discipline='Wrestling')
+pants = Equipment(name='Wrestling Pants', athlete=milo)
+
+session.add(milo)
+session.commit()
+
+tennis_results = session.query(Athlete).filter(Athlete.discipline.ilike('soccer'))
+
+for athlete in tennis_results:
+    print(f"The athlete {athlete.name} plays {athlete.discipline}")
+    print(f"He uses the following equipment:")
+    for equipment in athlete.equipment:
+        print(f"-- {equipment.name}")
