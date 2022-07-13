@@ -9,7 +9,11 @@ the result of a query is either a list of scalars or a scalar
 textual sql can be used in sql expressions, also with bound parameters
 relationship-construct creates an attribute to access objects from linked tables (via pkey) 
 as long as objects are connected via a relationship-attribute it doesn't matter which object you add/commit via session
+joins are great to retrieve pairs of rows but accessing the relationship-attribute is more suited to see all related rows to one row
+subqueries, functions and joins are used to create sophisticaed queries
 """
+
+
 
 # DECLARE MAPPING
 """
@@ -37,6 +41,7 @@ class Customers(Base):
 Base.metadata.create_all()
 
 
+
 # CREATING SESSION
 """
 to interact with the db, establish a connection by opening a session
@@ -47,6 +52,7 @@ from sqlalchemy.orm import sessionmaker
 Session = sessionmaker(bind=engine)
 session = Session()
 session2 = Session()
+
 
 
 # ADDING OBJECTS
@@ -70,6 +76,7 @@ for row in q2:
 session.commit()
 
 
+
 # USING QUERY
 """
 query(Customers).add_columns/add_entitiy/count/delete/distinct/filter/first/get/group_by/join/one/order_by/update
@@ -78,6 +85,7 @@ result = session.query(Customers).all()
 
 for row in result:
     print(f"The Customer {row.name} is {row.age} years old and lives in {row.address}.")
+
 
 
 # UPDATING OBJECTS
@@ -91,6 +99,7 @@ session.query(Customers).where(Customers.name.ilike('dENiz')).update(
 )
 
 session.commit()
+
 
 
 # FILTER WITH ILIKE, IN, AND, OR
@@ -108,6 +117,7 @@ r = session.query(Customers).filter(
 
 for row in r:
     print(row.id, row.name, row.age, row.address)
+
 
 
 # RETURNING SCALARS AND LISTS
@@ -145,13 +155,20 @@ class Athlete(Base):
     discipline = Column(String)
     equipment = relationship('Equipment', back_populates='athlete')
 
+    def __repr__(self) -> str:
+        return f"<Athlete {self.name}>"
+
 class Equipment(Base):
     __tablename__ = 'equipment'
 
     id = Column(Integer, primary_key=True)
     athlete_id = Column(Integer, ForeignKey('athlete.id'))  # THIS IS THE 'ONE' SIDE
     name = Column(String)
+    price = Column(Integer, default=550)
     athlete = relationship('Athlete', back_populates='equipment')
+
+    def __repr__(self) -> str:
+        return f"<Equipment {self.name}>"
     
 Base.metadata.create_all()
 
@@ -192,6 +209,11 @@ pants = Equipment(name='Wrestling Pants', athlete=milo)
 session.add(milo)
 session.commit()
 
+schumacher = Athlete(name='Schumacher', discipline='Formula One')
+
+session.add(schumacher)
+session.commit()
+
 tennis_results = session.query(Athlete).filter(Athlete.discipline.ilike('soccer'))
 
 for athlete in tennis_results:
@@ -199,3 +221,48 @@ for athlete in tennis_results:
     print(f"He uses the following equipment:")
     for equipment in athlete.equipment:
         print(f"-- {equipment.name}")
+
+
+
+# WORKING WITH JOINS
+from sqlalchemy.sql import func
+for a, e in session.query(Athlete, Equipment).filter(Athlete.id == Equipment.athlete_id).all():
+    print("{} has {}".format(a, e))
+
+equipment_count_subquery = session.query(
+    Equipment.athlete_id, func.count('*').label('equipment_count')
+    ).group_by(Equipment.athlete_id).subquery()
+
+for athlete, equip_count in session.query(Athlete, equipment_count_subquery.c.equipment_count).outerjoin(equipment_count_subquery, Athlete.id == equipment_count_subquery.c.athlete_id):
+    print(f"{athlete} {equip_count}")
+
+
+
+# COMMON RELATIONSHIP OPERATORS
+wrestling_pants_query = session.query(Equipment).filter(Equipment.name.__eq__('Wrestling Pants'))
+not_wrestling_pants_query = session.query(Equipment).filter(Equipment.name.__ne__('Wrestling Pants'))
+
+for equipment in wrestling_pants_query:
+    print(equipment)
+
+for equipment in not_wrestling_pants_query:
+    print(equipment)
+
+ten_athletes = session.query(Athlete).filter(Athlete.discipline.contains('Ten'))  # SAME AS LIKE('%...%)
+
+for athlete in ten_athletes:
+    print(athlete)
+
+any_athlete_with_550_equipment = session.query(Athlete).filter(Athlete.equipment.any(Equipment.price.__eq__(550)))  # ANY IS USED FOR THE ONE SIDE TO RETRIEVE ANY OF ITS OBJECTS
+
+for athlete in any_athlete_with_550_equipment:
+    print(athlete)
+
+equipment_has_athlete = session.query(Equipment).filter(Equipment.athlete.has(Athlete.name.__ne__('Messi')))  # HAS IS USED FOR THE MANY SIDE TO RETRIEVE THE ONE OBJECT EVERY MANY HAS
+
+for equipment in equipment_has_athlete:
+    print(equipment)
+
+
+
+# EAGER LOADING
