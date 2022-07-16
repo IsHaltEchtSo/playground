@@ -61,6 +61,14 @@ session = Session()
 session.add_all([shaddoll, exodia])
 session.commit()
 
+
+shekhi = Card(id=1, name='El Shaddoll Shekhinaga', type='Monster', effect='Deny a special summon')
+shekhi.name = 'The Merger'
+
+session.merge(shekhi)
+
+session.commit()
+
 deck_association_subquery = session.query(
     Deck.theme, deck_card_association.c.card_id
     ).join(deck_card_association, Deck.id == deck_card_association.c.deck_id).subquery()
@@ -71,3 +79,5 @@ cards_in_decks_view = session.query(
 
 for card, deck in cards_in_decks_view:
     print(f"{card} in {deck}")
+
+
