@@ -12,6 +12,7 @@ as long as objects are connected via a relationship-attribute it doesn't matter 
 joins are great to retrieve pairs of rows but accessing the relationship-attribute is more suited to see all related rows to one row
 subqueries, functions and joins are used to create sophisticaed queries
 lazy load for in-time loading of associated rows, eager load to query all associated rows beforehand
+define the cascading type in relationship to configure how deletes/updates/... propagate to related objects
 """
 
 
@@ -283,3 +284,44 @@ eager_athletes = session_new.query(Athlete).options(eagerload(Athlete.equipment)
 print('\n\nTHIS IS EAGER LOADING\n\n')
 for athlete in eager_athletes:
     print(athlete.equipment)
+
+
+
+# DELETING RELATED OBJECTS
+from sqlalchemy import Table
+child_toy_association = Table(
+    'child_toy_association', 
+    Base.metadata,
+    Column('child_id', ForeignKey('child.id'), primary_key=True),
+    Column('toy_id', ForeignKey('toy.id'), primary_key=True)
+)
+
+class Child(Base):
+    __tablename__ = 'child'
+    id = Column(Integer, primary_key=True)
+    name = Column(String)
+    toys = relationship('Toy', back_populates='children', secondary=child_toy_association, cascade='all')
+
+class Toy(Base):
+    __tablename__ = 'toy'
+    id = Column(Integer, primary_key=True)
+    name = Column(String)
+    children = relationship('Child', back_populates='toys', secondary=child_toy_association)
+
+Base.metadata.create_all()
+
+billy = Child(name='Billy')
+luis = Child(name='Luis')
+
+truck = Toy(name='Truck')
+shovel = Toy(name='Shovel')
+
+billy.toys.append(truck)
+luis.toys.append(shovel)
+
+session.add_all([billy, luis])
+session.commit()
+
+session.delete(billy)  # ALSO DELETES THE TRUCK
+session.delete(shovel)  # DOES NOT DELETE LUIS
+session.commit()
