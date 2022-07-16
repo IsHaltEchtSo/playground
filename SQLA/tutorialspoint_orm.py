@@ -11,6 +11,7 @@ relationship-construct creates an attribute to access objects from linked tables
 as long as objects are connected via a relationship-attribute it doesn't matter which object you add/commit via session
 joins are great to retrieve pairs of rows but accessing the relationship-attribute is more suited to see all related rows to one row
 subqueries, functions and joins are used to create sophisticaed queries
+lazy load for in-time loading of associated rows, eager load to query all associated rows beforehand
 """
 
 
@@ -266,3 +267,19 @@ for equipment in equipment_has_athlete:
 
 
 # EAGER LOADING
+from sqlalchemy.orm import eagerload
+session_new = Session()
+
+lazy_athletes = session_new.query(Athlete).options()
+
+print('\n\nTHIS IS LAZY LOADING\n\n')
+for athlete in lazy_athletes:
+    print(athlete.equipment)
+
+session_new = Session()
+
+eager_athletes = session_new.query(Athlete).options(eagerload(Athlete.equipment))
+
+print('\n\nTHIS IS EAGER LOADING\n\n')
+for athlete in eager_athletes:
+    print(athlete.equipment)
