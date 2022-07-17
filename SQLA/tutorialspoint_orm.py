@@ -325,7 +325,3 @@ session.commit()
 session.delete(billy)  # ALSO DELETES THE TRUCK
 session.delete(shovel)  # DOES NOT DELETE LUIS
 session.commit()
-
-
-
-# DIALECTS
