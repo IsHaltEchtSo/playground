@@ -55,22 +55,24 @@ from flask_restful import fields, marshal_with
 resource_fields = {
     'todo_idd': fields.Integer,
     'task': fields.String,
-    'uri': fields.Url('todo_dao_endpoint')
+    'uri': fields.Url('todo_endpoint'),
+    'message': fields.String(default='hello')
 }
 
 class TodoDAO:
     def __init__(self, id, task):
         self.todo_idd = id + 5 
+        self.todo_id = id
         self.task = task
+        self.message = 'bye bye'
         self.status = 'Active'  # THIS FIELD WON'T BE SENT IN THE RESPONSE
 
 class Todo(Resource):
     @marshal_with(resource_fields)
-    def get(self, todo_id):
-        return TodoDAO(id=todo_id, task="Remember the Vleague")
-# TODO: werkzeug.routing.BuildError: Could not build url for endpoint 'todo_dao_endpoint' with values 
-# ['status', 'task', 'todo_idd']. Did you forget to specify values ['todo_id']?
-api2.add_resource(Todo, '/todo-dao/<int:todo_id>', endpoint='todo_dao_endpoint')
+    def get(self, todo_idd):
+        return TodoDAO(id=todo_idd, task="Remember the Vleague")
+
+api2.add_resource(Todo, '/todo-dao/<int:todo_idd>', endpoint='todo_dao_endpoint')
 
 if __name__ == '__main__':
     app2.run(debug=True)
