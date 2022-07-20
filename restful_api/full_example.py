@@ -48,7 +48,19 @@ class IceCreamList(Resource):
 
         return new_ice_cream
 
+request_marshal_plan = {'name': fields.String, 'age': fields.Integer}
+
+class RequestParser(Resource):
+    @marshal_with(fields=parser_fields)
+    def post(self):
+        form = request.form
+
+        return form
+
+
+
 api.add_resource(IceCreamList, '/ice_cream_list/<int:ice_cream_id>', endpoint='ice_cream_list')
+api.add_resource(RequestParser, '/req', endpoint='request_parser')
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001)
