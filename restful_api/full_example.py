@@ -51,7 +51,7 @@ class IceCreamList(Resource):
 request_marshal_plan = {'name': fields.String, 'age': fields.Integer}
 
 class RequestParser(Resource):
-    @marshal_with(fields=parser_fields)
+    @marshal_with(fields=request_marshal_plan)
     def post(self):
         form = request.form
 
