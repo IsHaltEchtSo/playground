@@ -141,6 +141,7 @@ class HardwareSchema(Schema):
     """
     name = fields.Str()
     type = fields.Str()
+    goal = fields.Str()  # THIS WON'T EXTRACT ANYTHING
 
     @post_load
     def make_hardware(self, data, **kwargs) -> Hardware:
