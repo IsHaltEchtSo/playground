@@ -6,6 +6,7 @@ serialize many objects into a nested dictionary
 objects to be serialized can be of different types
 marshmallow only serializes the fields specified; additional ones are omitted, missing ones are left out
 validation happens when data is deserialized by a schema and should happen in a try/except block
+load_default / dump_default provide default values for deserialization/serialization
 """
 
 
@@ -146,14 +147,16 @@ class HardwareSchema(Schema):
 
     @post_load
     def make_hardware(self, data, **kwargs) -> Hardware:
-        return Hardware(**data)
+        return Hardware(**data, price=100)
 
 iPhone = Hardware(name='iPhone', type='Smartphone', price=649.50)
-magic_mouse = dict(type='Bluetooth Mouse', price=114.90, alias='super mouse')
+magic_mouse = dict(name='Magic Mouse', type='Bluetooth Mouse', price=114.90, alias='super mouse')
 
 hardware_schema = HardwareSchema()
 hardware_serialized = hardware_schema.dump(obj=[iPhone, magic_mouse], many=True)
 pprint(hardware_serialized, indent=2)
+hardware_deserialized = hardware_schema.load(hardware_serialized, many=True)
+pprint(hardware_deserialized, indent=2)
 
 
 
@@ -228,3 +231,90 @@ try:
 except ValidationError as err:
     pprint(err.messages, indent=2)
     pprint(err.valid_data, indent=2)
+
+
+
+# SPECIFYING DEFAULTS
+import uuid
+class UserSchema(Schema):
+    id = fields.UUID(load_default=uuid.uuid1)
+    birthdate = fields.DateTime(dump_default=dt.datetime(year=1995, month=12, day=13))
+
+pprint(UserSchema().load({}))
+pprint(UserSchema().dump({}))
+
+
+
+# HANDLING UNKNOWN FIELDS
+from marshmallow import INCLUDE, EXCLUDE
+class User:
+    def __init__(self, id, name, age) -> None:
+        self.id = id
+        self.name = name
+        self.age = age
+
+class UserSchema(Schema):
+    id = fields.Integer()
+    name = fields.String()
+
+user_data = {'id':1, 'name':'deniz', 'age':15}
+user_object = User(id=2, name="deniz", age=17)
+
+user_deserialized_include = UserSchema().load(user_data, unknown=INCLUDE)
+user_deserialized_exclude = UserSchema().load(user_data, unknown=EXCLUDE)
+pprint(user_deserialized_include, indent=2)
+pprint(user_deserialized_exclude, indent=2)
+
+user_serialized = UserSchema().load(user_object.__dict__, unknown=INCLUDE)
+pprint(user_serialized, indent=2)
+
+
+
+# VALIDATION WITHOUT DESERIALIZATION
+errors = ItemSchema().validate({'quantity':140, 'price':5})
+pprint(errors)
+
+
+
+# 'READ-ONLY' AND 'WRITE-ONLY' FIELDS
+class UserSchema(Schema):
+    class Meta:
+        ordered = True
+
+    name = fields.String()
+    password = fields.String(load_only=True)
+    created_at = fields.DateTime(dump_only=True)
+
+user_dict = {'name':'deniz', 'password':'super_tricky+password', 'created_at':dt.datetime.now()}
+
+pprint(UserSchema().load(user_dict, unknown=INCLUDE))
+pprint(UserSchema().dump(user_dict))
+
+
+
+
+# SCHEMA-LEVEL VALIDATION
+from marshmallow import validates_schema
+
+class OlderBrotherSchema(Schema):
+    name = fields.String()
+    age = fields.Integer()
+    sibling_name = fields.String()
+    sibling_age = fields.Integer()
+
+    @validates_schema
+    def needs_younger_brother(self, data, **kwargs):
+        if not data['sibling_name']:
+            raise ValidationError(message='An older brother needs a younger sibling!')
+    
+    @validates_schema
+    def needs_to_be_older(self, data, **kwargs):
+        if data['age'] < data['sibling_age']:
+            raise ValidationError(message='The older brother needs to be older than the sibling!')
+
+older_brother_data = {'name':'deniz', 'age':26, 'sibling_name':'domi', 'sibling_age':25}
+
+not_older_brother_data = {'name': 'domi', 'age':25, 'sibling_name':'deniz', 'sibling_age':26}
+
+errors = OlderBrotherSchema().validate(data=[older_brother_data, not_older_brother_data], many=True)
+pprint(errors, indent=2)
