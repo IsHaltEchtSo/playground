@@ -5,6 +5,7 @@ deserialize objects into dictionaries or objects with @post_load
 serialize many objects into a nested dictionary
 objects to be serialized can be of different types
 marshmallow only serializes the fields specified; additional ones are omitted, missing ones are left out
+validation happens when data is deserialized by a schema and should happen in a try/except block
 """
 
 
@@ -103,7 +104,7 @@ from marshmallow import Schema, fields, post_load
 
 class UserSchema(Schema):
     name = fields.Str()
-    email = fields.Str()
+    email = fields.Email()
     created_at = fields.DateTime()
 
     @post_load
@@ -153,3 +154,77 @@ magic_mouse = dict(type='Bluetooth Mouse', price=114.90, alias='super mouse')
 hardware_schema = HardwareSchema()
 hardware_serialized = hardware_schema.dump(obj=[iPhone, magic_mouse], many=True)
 pprint(hardware_serialized, indent=2)
+
+
+
+# VALIDATION
+from marshmallow import Schema, fields, ValidationError, validate, validates
+
+try:
+    user_object = UserSchema().load({'name':'Lin', 'email':'lin'})
+except ValidationError as err:
+    pprint(err.messages)  # THE EMAIL IS NOT VALID
+    pprint(err.valid_data)  # THE NAME IS VALID
+
+class BandMemberSchema(Schema):
+    name = fields.String(required=True)
+    email = fields.Email()
+
+band_data = [
+    {"name": "Den", "email": 'den@rock.org'},
+    {'name': 'Luca', 'email': 'invalid_email'},  # INVALID EMAIL
+    {'name': 'Lin', 'email': 'lin@rock.org'},
+    {'email': 'akhil@rock.org'}  # INVALID NAME
+]
+
+try:
+    BandMemberSchema().load(band_data, many=True)
+except ValidationError as err:
+    pprint(err.messages, indent=2)
+    pprint(err.valid_data, indent=2)
+
+class UserSchema(Schema):
+    name = fields.String(validate=validate.And(validate.Length(min=2), validate.Length(max=10)))
+    permission = fields.String(validate=validate.OneOf(['read', 'write', 'admin']))
+    age = fields.Integer(validate=validate.Range(min=18, max=50))
+
+user_data = {'name':'', 'permission':'delete', 'age':72}
+
+try:
+    UserSchema().load(user_data)
+except ValidationError as err:
+    pprint(err.messages, indent=2)
+    pprint(err.valid_data)
+
+class ItemSchema(Schema):
+    def validate_quantity(n):  # A CUSTOM VALIDATOR
+        if n <= 0:
+            raise ValidationError(message='Quantity must be greater than 0')
+        if n > 30:
+            raise ValidationError(message='Quantity must not be greater than 30')
+
+    def validate_15(n):  # A CUSTOM VALIDATOR
+        if n != 15:
+            raise ValidationError(message='Quantity is not 15!')
+
+    quantity = fields.Integer(validate=[validate_quantity, validate_15])
+    price = fields.Integer()
+
+    @validates(field_name='price')
+    def check_price(self, price):  # A METHOD FOR FIELD VALIDATION
+        if price > 500:
+            raise ValidationError(message="The item's price may not exceed 500€")
+        if price < 10:
+            raise ValidationError(message='The item should cost at least 10€')
+
+item_data = [
+    {'quantity': 31},
+    {'quantity': -1},
+    {'quantity': 15}
+]
+
+try: 
+    ItemSchema().load(item_data, many=True)
+except ValidationError as err:
+    pprint(err.messages, indent=2)
+    pprint(err.valid_data, indent=2)
