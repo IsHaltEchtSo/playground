@@ -318,3 +318,29 @@ not_older_brother_data = {'name': 'domi', 'age':25, 'sibling_name':'deniz', 'sib
 
 errors = OlderBrotherSchema().validate(data=[older_brother_data, not_older_brother_data], many=True)
 pprint(errors, indent=2)
+
+
+
+# DESERIALIZING MANY OBJECTS
+class Card:
+    def __init__(self, name: str) -> None:
+        self.name = name
+
+    def __repr__(self) -> str:
+        return f'<Card {self.name}>'
+
+class CardSchema(Schema):
+    name = fields.String()
+
+    @post_load
+    def make_card(self, data, **kwargs):
+        return Card(name=data['name'])
+
+exodia = Card(name='Exodia')
+busterblader = Card(name='Busterblader')
+
+cards_serialized = CardSchema().dump(obj=[exodia, busterblader], many=True)
+pprint(cards_serialized, indent=2)
+
+cards_deserialized = CardSchema().load(data=cards_serialized, many=True)
+pprint(cards_deserialized, indent=2)
