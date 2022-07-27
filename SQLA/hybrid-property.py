@@ -17,6 +17,11 @@ class FerociousAnimals(str, Enum):
     TIGER = 'Tiger'
     FOX = 'Fox'
 
+class Status(str, Enum):
+    PRESENT = 'PRESENT'
+    SOLD = 'SOLD'
+    HOLD = 'HOLD'
+
 engine = create_engine('postgresql+psycopg2://deniz@localhost:54321/sqla', echo=False)
 Base = declarative_base(bind=engine)
 Session = sessionmaker(bind=engine)
@@ -26,8 +31,8 @@ class Animal(Base):
     id = Column(Integer, primary_key=True)
     race = Column(String, default='DOG')
 
-    # def __init__(self, race):
-    #     self.race = race
+    def __init__(self, race):
+        self.race = race
 
     @property
     def is_pet(self):
@@ -36,6 +41,12 @@ class Animal(Base):
     @hybrid_property
     def is_ferocious_animal(self):
         return self.race == 'FOX'
+
+    @hybrid_property
+    def status(self):
+        if self.race:
+            return Status.PRESENT if self.race else Status.SOLD
+        return Status.HOLD
 
     def __repr__(self) -> str:
         return f"<Animal {self.race}>"
@@ -60,10 +71,13 @@ print(f"Capper is pet: {capper.is_pet} and is ferocious animal: {capper.is_feroc
 # pets = session.query(Animal).filter(Animal.is_pet)  DOES NOT WORK BECAUSE THE PROPERTY DOESN'T TRANSLATE TO A SQL-EXPRESSION
 # for pet in pets:
 #     print(pet)
-
 animals = session.query(Animal).filter(Animal.is_ferocious_animal == True)  # WORKS BECAUSE THE HYBRID-PROPERTY TRANSLATES TO A SQL-EXPRESSION
 for animal in animals:
     print(animal)
+
+animals = session.query(Animal).filter(Animal.status.not_in(Status.__members__))
+for animal in animals:
+    print(f"The animal {animal.race} is {animal.status}")
 
 
 
