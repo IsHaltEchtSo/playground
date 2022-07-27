@@ -1,8 +1,12 @@
-from sqlalchemy import func, create_engine, Column, Integer, String, Table, ForeignKey
+"""
+LEARNINGS
+to use hybrid_properties for queries, use func.expression and pass it some query written in SQL Expression Language
+"""
+from sqlalchemy import \
+    create_engine, Column, Integer, String, Table, ForeignKey, \
+    desc, asc, select, func
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship
 from sqlalchemy.ext.hybrid import hybrid_property
-# TODO import sql expressions
-# from sqlalchemy.sql import 
 
 engine = create_engine('postgresql+psycopg2://deniz@localhost:54321/sqla', echo=False)
 Base = declarative_base(bind=engine)
@@ -22,22 +26,29 @@ class Person(Base):
     follower = relationship(
         'Person', backref='following', 
         secondary=follower_association,
-        primaryjoin=follower_association.c.follower_id == id,
-        secondaryjoin=follower_association.c.followee_id == id
+        primaryjoin=follower_association.c.followee_id == id,
+        secondaryjoin=follower_association.c.follower_id == id
     )
 
-    # TODO implement hybrid properties
-    # @hybrid_property
-    # def follower_count(self):
-    #     return len(self.follower)
+    @hybrid_property
+    def follower_count(self):
+        return len(self.follower)
 
-    # @follower_count.expression
-    # def follower_count(cls):
-    #     return func.count(cls.follower)
+    @follower_count.expression
+    def follower_count(cls):
+        return select([func.count()]) \
+            .where(cls.id == follower_association.c.followee_id) \
+            .scalar_subquery()
 
-    # @hybrid_property
-    # def following_count(self):
-    #     return len(self.following)
+    @hybrid_property
+    def following_count(self):
+        return len(self.following)
+
+    @following_count.expression
+    def following_count(cls):
+        return select([func.count()]) \
+            .where(cls.id == follower_association.c.follower_id) \
+            .scalar_subquery()
 
     def __repr__(self) -> str:
         return f"<Person {self.name}>"
@@ -48,10 +59,13 @@ deniz = Person(name='Deniz')
 hanna = Person(name='Hanna')
 lucas = Person(name='Lucas')
 alex = Person(name='Alex')
+danny = Person(name='Danny')
+paul = Person(name='Paul')
 
-deniz.follower.extend([alex, hanna, lucas])
+deniz.follower.extend([alex, hanna, lucas, danny, paul])
 hanna.follower.extend([deniz, lucas])
-lucas.follower.extend([alex])
+lucas.follower.extend([alex, danny])
+danny.follower.extend([alex])
 
 session = Session()
 session.add(deniz)
@@ -62,8 +76,13 @@ for person in persons:
     print(f"{person.name} is following {person.following_count} people: {person.following}")
     print(f"{person.name} has {person.follower_count} followers: {person.follower}")
 
-# TODO order persons after follower count
-# persons = session.query(Person).order_by().all()
+followees = session.query(Person).order_by(desc(Person.follower_count)).all()
 
-# for p in persons:
-#     print(p)
+for p in followees:
+    print(f"{p} has {p.follower_count} followers and is following {p.following_count} people.")
+
+print('#'*20)
+followers = session.query(Person).order_by(asc(Person.following_count), ).all()
+
+for p in followers:
+    print(f"{p} is following {p.following_count} people and has {p.follower_count} followers.")
