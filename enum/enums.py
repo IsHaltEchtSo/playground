@@ -1,3 +1,9 @@
+"""
+An Enum is used to give meaning to values: 42 is THE answer, 666 the devil's number, [...]
+If mixed with another type (str, int, ...) it inherits its functionality and
+    upon using that type's functionality the value of the Enum-Name is used
+"""
+
 from enum import Enum
 
 class Fibonacci_INT(int, Enum):
@@ -84,3 +90,11 @@ elif hanno.major == StudyDepartments.ID:
     print(f"I mean... {StudyDepartments.ID} is not too bad, I guess?")
 elif hanno.major == StudyDepartments.SE:
     print(f"Oh boy, now we're talking! {StudyDepartments.SE} is the way to go!")
+
+
+class Animal(str, Enum):
+    dog = 1
+    cat = 2
+
+if type(Animal.dog) is type(Animal.cat):
+    print('Dog and Cat have the same type: Animal')
