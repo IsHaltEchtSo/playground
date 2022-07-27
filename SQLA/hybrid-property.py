@@ -75,7 +75,7 @@ animals = session.query(Animal).filter(Animal.is_ferocious_animal == True)  # WO
 for animal in animals:
     print(animal)
 
-animals = session.query(Animal).filter(Animal.status.not_in(Status.__members__))
+animals = session.query(Animal).filter(Animal.status == Status.PRESENT)
 for animal in animals:
     print(f"The animal {animal.race} is {animal.status}")
 
